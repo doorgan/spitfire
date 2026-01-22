@@ -141,6 +141,20 @@ defmodule SpitfireTest do
       assert Spitfire.parse(code) == s2q(code)
     end
 
+    test "unary operators with do/end blocks followed by binary operators" do
+      codes = [
+        "+case a do\n  _ -> b\nend |> c",
+        "-if true do\n  1\nend + 2",
+        "not case x do\n  _ -> true\nend == false",
+        "+case a do\n  _ -> b\nend |> c |> d",
+        "!quote do\n  a\nend && b"
+      ]
+
+      for code <- codes do
+        assert Spitfire.parse(code) == s2q(code)
+      end
+    end
+
     test "parses numbers" do
       code = """
       111_111

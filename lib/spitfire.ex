@@ -789,9 +789,77 @@ defmodule Spitfire do
       parser = parser |> next_token() |> eat_eoe()
       {rhs, parser} = parse_expression(parser, precedence, false, false, false)
 
+      {rhs, parser} = maybe_continue_after_do_block(parser, rhs)
+
       ast = {token, meta, [rhs]}
 
       {ast, parser}
+    end
+  end
+
+  defp do_block?({_token, meta, _args}) when is_list(meta) do
+    Keyword.has_key?(meta, :do) and Keyword.has_key?(meta, :end)
+  end
+
+  defp do_block?(_), do: false
+
+  @binary_op_types MapSet.new([
+                     :match_op,
+                     :when_op,
+                     :pipe_op,
+                     :type_op,
+                     :dual_op,
+                     :mult_op,
+                     :power_op,
+                     :concat_op,
+                     :arrow_op,
+                     :ternary_op,
+                     :or_op,
+                     :and_op,
+                     :comp_op,
+                     :rel_op,
+                     :in_op,
+                     :xor_op,
+                     :in_match_op,
+                     :range_op,
+                     :assoc_op
+                   ])
+  defp binary_op_token?(token) do
+    MapSet.member?(@binary_op_types, token)
+  end
+
+  defp maybe_continue_after_do_block(parser, rhs) do
+    if do_block?(rhs) and binary_op_token?(peek_token_type(parser)) do
+      continue_binary_ops(parser, rhs, @lowest)
+    else
+      {rhs, parser}
+    end
+  end
+
+  defp continue_binary_ops(parser, left, {associativity, precedence}) do
+    terminals = @terminals
+
+    if not MapSet.member?(terminals, peek_token(parser)) and calc_prec(parser, associativity, precedence) do
+      peek_token_type = peek_token_type(parser)
+
+      {new_left, parser} =
+        cond do
+          binary_op_token?(peek_token_type) and peek_token_type == :range_op ->
+            parse_range_expression(next_token(parser), left)
+
+          binary_op_token?(peek_token_type) and peek_token_type == :assoc_op ->
+            parse_assoc_op(next_token(parser), left)
+
+          binary_op_token?(peek_token_type) ->
+            parse_infix_expression(next_token(parser), left)
+
+          true ->
+            {left, parser}
+        end
+
+      continue_binary_ops(parser, new_left, {associativity, precedence})
+    else
+      {left, parser}
     end
   end
 
