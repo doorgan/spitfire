@@ -1069,9 +1069,9 @@ defmodule Spitfire do
 
   defp parse_map_update_pairs(parser) do
     {{pairs, capture}, parser} =
-      with_state(parser, %{map_context: true, last_assoc_meta: nil}, capture: [:last_assoc_meta]) do
+      with_state(parser, %{map_context: true, last_assoc_meta: nil}, [capture: [:last_assoc_meta]], fn parser ->
         parse_comma_list(parser, @list_comma, false, true)
-      end
+      end)
 
     assoc_meta = Map.get(capture, :last_assoc_meta)
     {pairs, assoc_meta, parser}
@@ -1867,9 +1867,9 @@ defmodule Spitfire do
 
         true ->
           {pairs, parser} =
-            with_state(parser, %{map_context: true}) do
+            with_state(parser, %{map_context: true}, fn parser ->
               parse_comma_list(parser, @list_comma, false, true)
-            end
+            end)
 
           parser = eat_eol_at(parser, 1)
 
@@ -2008,9 +2008,9 @@ defmodule Spitfire do
             {ast, parser}
           else
             {pairs, parser} =
-              with_state(parser, %{map_context: true}) do
+              with_state(parser, %{map_context: true}, fn parser ->
                 parse_comma_list(parser, @list_comma, false, true)
-              end
+              end)
 
             parser = eat_eol_at(parser, 1)
 
@@ -2035,9 +2035,9 @@ defmodule Spitfire do
           parser = Map.put(parser, :nesting, 0)
 
           {pairs, parser} =
-            with_state(parser, %{map_context: true}) do
+            with_state(parser, %{map_context: true}, fn parser ->
               parse_comma_list(parser, @list_comma, false, true)
-            end
+            end)
 
           parser = eat_eol_at(parser, 1)
 
